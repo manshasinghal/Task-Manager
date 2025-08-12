@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: taskmanager-frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile.prod
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    plan: free
+
+  - type: web
+    name: taskmanager-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile.prod
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        fromDatabase:
+          name: taskmanager-db
+          property: connectionString
+    plan: free
