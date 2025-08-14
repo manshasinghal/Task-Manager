@@ -12,7 +12,6 @@ const StatusBadge = ({ status }) => {
   return <span className={`text-[10px] tracking-wide font-semibold px-2 py-1 rounded-md border ${map[status]}`}>{status.replace('-', ' ')}</span>;
 };
 
-// Task component (non-sortable)
 const Task = ({ task, index, editTaskId, editTaskText, setEditTaskId, setEditTaskText, handleEditTask, handleDeleteClick, setStatusInline }) => {
   return (
     <li
@@ -125,7 +124,7 @@ const Home = ({ user, userId, setUser }) => {
     e.preventDefault();
     if (!editTaskText.trim()) { toast.error('Task cannot be empty'); return; }
     try {
-      await api.patch(`/tasks/${editTaskId}`, { task: editTaskText });
+      await api.patch(`/tasks/${editTaskId}`, { task: editTaskText, status: newTaskStatus });
       toast.success('Task updated');
       setEditTaskId(null);
       setEditTaskText('');
