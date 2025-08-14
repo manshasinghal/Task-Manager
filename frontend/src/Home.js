@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from './api';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import toast, { Toaster } from 'react-hot-toast';
 
 // Badge component for status
@@ -15,22 +12,12 @@ const StatusBadge = ({ status }) => {
   return <span className={`text-[10px] tracking-wide font-semibold px-2 py-1 rounded-md border ${map[status]}`}>{status.replace('-', ' ')}</span>;
 };
 
-// Sortable item wrapper
-const SortableTask = ({ task, index, editTaskId, editTaskText, setEditTaskId, setEditTaskText, handleEditTask, handleDeleteClick, setStatusInline }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 50 : 'auto',
-    opacity: isDragging ? 0.6 : 1
-  };
+// Task component (non-sortable)
+const Task = ({ task, index, editTaskId, editTaskText, setEditTaskId, setEditTaskText, handleEditTask, handleDeleteClick, setStatusInline }) => {
   return (
     <li
-      ref={setNodeRef}
-      style={{ animationDelay: `${index * 40}ms`, ...style }}
+      style={{ animationDelay: `${index * 40}ms` }}
       className="group relative rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-800/40 backdrop-blur-md p-5 flex flex-col gap-4 shadow-lg shadow-black/30 overflow-hidden animate-[fadeIn_.6s_ease_forwards] opacity-0"
-      {...attributes}
-      {...listeners}
     >
       <div className="absolute inset-px rounded-[inherit] bg-[linear-gradient(140deg,rgba(255,255,255,0.15),rgba(255,255,255,0)_40%)] pointer-events-none" />
       {editTaskId === task._id ? (
@@ -96,8 +83,6 @@ const Home = ({ user, userId, setUser }) => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-
   const fetchTasks = useCallback(async () => {
     try {
       if (userId) {
@@ -117,7 +102,7 @@ const Home = ({ user, userId, setUser }) => {
 
   const handleAddTask = async (e) => {
     e.preventDefault();
-    if (!newTaskText.trim() || !userId) {
+    if (!newTaskText.trim()) {
       toast.error('Task cannot be empty');
       return;
     }
@@ -178,23 +163,6 @@ const Home = ({ user, userId, setUser }) => {
 
   const handleLogout = () => { setUser(null); setTasks([]); };
 
-  // Drag end handler
-  const onDragEnd = async (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = tasks.findIndex(t => t._id === active.id);
-    const newIndex = tasks.findIndex(t => t._id === over.id);
-    const newOrder = arrayMove(tasks, oldIndex, newIndex);
-    setTasks(newOrder);
-    try {
-      await api.post(`/tasks/${userId}/reorder`, { tasks: newOrder.map(t => t._id) });
-      toast.success('Order saved');
-    } catch (e) {
-      toast.error('Reorder failed');
-      fetchTasks();
-    }
-  };
-
   return (
     <div className="flex flex-col space-y-8">
       <Toaster position="top-right" toastOptions={{ style: { background: '#1e1e2f', color: '#f5f5f7', fontSize: '12px' } }} />
@@ -231,7 +199,9 @@ const Home = ({ user, userId, setUser }) => {
             type="submit"
             disabled={adding}
             className="sm:col-span-1 px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-fuchsia-500 via-pink-500 to-indigo-500 text-white shadow hover:shadow-fuchsia-500/30 hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >{adding ? 'Adding...' : 'Add Task'}</button>
+          >
+          {adding ? 'Adding...' : 'Add Task'}
+          </button>
         </form>
       </div>
 
@@ -247,26 +217,22 @@ const Home = ({ user, userId, setUser }) => {
             <p className="text-xs">Add your first task to kickstart productivity.</p>
           </div>
         )}
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={tasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
-            <ul className="grid gap-4 md:grid-cols-2">
-              {tasks.map((task, index) => (
-                <SortableTask
-                  key={task._id}
-                  task={task}
-                  index={index}
-                  editTaskId={editTaskId}
-                  editTaskText={editTaskText}
-                  setEditTaskId={setEditTaskId}
-                  setEditTaskText={setEditTaskText}
-                  handleEditTask={handleEditTask}
-                  handleDeleteClick={handleDeleteClick}
-                  setStatusInline={setStatusInline}
-                />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+        <ul className="grid gap-4 md:grid-cols-2">
+          {tasks.map((task, index) => (
+            <Task
+              key={task._id}
+              task={task}
+              index={index}
+              editTaskId={editTaskId}
+              editTaskText={editTaskText}
+              setEditTaskId={setEditTaskId}
+              setEditTaskText={setEditTaskText}
+              handleEditTask={handleEditTask}
+              handleDeleteClick={handleDeleteClick}
+              setStatusInline={setStatusInline}
+            />
+          ))}
+        </ul>
       </div>
 
       {/* Delete Modal */}
